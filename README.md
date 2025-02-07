@@ -1,2 +1,2 @@
-# terraform-demo
-General example of Infrastructure as Cloud (IaC) using Terraform and AWS.
+# Terraform Demo
+General example of Infrastructure as Cloud (IaC) using Terraform.
