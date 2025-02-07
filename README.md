@@ -1,4 +1,4 @@
-# Terraform Demo
+# Exploring Terraform
 This a project to help users get an introduction to Hashicorp's [Terraform](https://developer.hashicorp.com/terraform) along with concepts related to infrastructure as code (IaC). Step by step instructions and guides will be provided through this project's README. We also recommend visitng the official guides provided by [Hashicorp](https://developer.hashicorp.com/terraform/docs). Many thanks to the contributors to this project. The end goal is to provide a useful resource for those interested in getting started with IaC. Feel free to download or fork from this project. If you wish to report issues or contribute directly to this particular project, please contact our team.
 
 ## Terraform Installation for Mac
