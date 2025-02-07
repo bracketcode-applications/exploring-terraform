@@ -24,6 +24,8 @@ Verify Terraform is running. <br />
 ## IaC by Cloud Provider
 
 ### AWS
+
+#### Set AWS Access Key
 To use Terraform with AWS you will need to utilize an assigned IAM Access Key with the appropriate permissions to provsion on AWS.
 
 1. Log into AWS, Navigate to IAM and generate an Access Key for your user.
@@ -36,4 +38,36 @@ To use Terraform with AWS you will need to utilize an assigned IAM Access Key wi
   ```
   $ export AWS_SECRET_ACCESS_KEY=
   ```
+
+#### Commands
+Run the following commands from your working directory (folder).
+
+Initiate
+```
+terraform init
+```
+
+Format Confirguration
+```
+terraform fmt
+```
+
+Validate Configuration
+```
+terraform validate
+```
+Apply (aka launch) Configuration
+```
+terraform apply
+```
+
+Show Configuration
+```
+terraform show
+```
+
+Destroy
+```
+terraform destroy
+```
 
