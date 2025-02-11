@@ -9,12 +9,12 @@ data "aws_instance" "example" {
 
 # Create the AMI from an existing EC2 instance
 resource "aws_ami_from_instance" "example_ami" {
-  name               = "my-custom-ami"
+  name               = "backup-ami-name-environment" # Replace with chosen naming convention
   source_instance_id = data.aws_instance.example.id
-  description        = "An AMI created using Terraform"
+  description        = "Backup AMI created using Terraform" # Replace with chosen description
 
   tags = {
-    Name = "my-custom-ami"
+    Name = "name-environment-ami" # Replace with chosen tags
   }
 }
 
