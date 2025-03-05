@@ -10,6 +10,7 @@ sudo mysql -e "FLUSH PRIVILEGES;"
 
 # Install WordPress
 cd /var/www/html
+sudo rm index.html
 sudo wget https://wordpress.org/latest.zip
 sudo unzip latest.zip
 sudo mv wordpress/* .
@@ -35,3 +36,4 @@ require_once ABSPATH . 'wp-settings.php';
 EOF
 
 sudo systemctl restart apache2
+
