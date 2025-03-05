@@ -1,4 +1,4 @@
-# Exploring Terraform
+# Provision EC2 with Wordpress
 This is a sample using [Terraform](https://developer.hashicorp.com/terraform) to launch an EC2 with wordpress preinstalled. 
 
 ## Run Commands
