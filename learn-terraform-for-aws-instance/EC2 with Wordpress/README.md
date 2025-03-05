@@ -20,7 +20,7 @@ terraform validate
 ```
 Apply (aka launch) Configuration
 ```
-terraform apply
+terraform apply -auto-approve
 ```
 
 Show Configuration
