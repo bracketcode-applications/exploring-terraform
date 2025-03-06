@@ -9,7 +9,7 @@ Initiate
 terraform init
 ```
 
-Format Confirguration
+Format Confirguration (Optional)
 ```
 terraform fmt
 ```
@@ -23,14 +23,9 @@ Apply (aka launch) Configuration
 terraform apply -auto-approve
 ```
 
-Show Configuration
+Show Configuration (Optional)
 ```
 terraform show
-```
-
-Destroy
-```
-terraform destroy
 ```
 
 After launch navigate to...
@@ -38,3 +33,8 @@ After launch navigate to...
 http://your-domain/wp-admin/install.php
 ```
 ...and complete the set up process.
+
+To terminate the EC2 and associated security group use the destroy command.
+```
+terraform destroy
+```
