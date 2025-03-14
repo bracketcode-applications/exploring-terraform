@@ -1,145 +1,208 @@
-# Provider
 provider "aws" {
-  region = var.region
+  region = "us-west-1"
 }
 
-variable "region" {
-  default = "us-west-1"
+# Create a new VPC
+resource "aws_vpc" "test_vpc" {  # EDIT : Replace test_vpc with custom name. 
+  cidr_block = "15.0.0.0/16" # EDIT : Update range to avoid conflict. Can increment 15.x.x.x
+  tags = {
+    Name = "test_vpc"
+  }
 }
 
-variable "ami" {
-  description = "AMI ID for Ubuntu"
-  # Replace with a valid AMI ID for your region.
-  default     = "ami-07d2649d67dbe8900"
+# Create two public subnets in different AZs
+resource "aws_subnet" "public_subnet1" {
+  vpc_id                  = aws_vpc.test_vpc.id
+  cidr_block              = "15.0.1.0/24" # EDIT : Update range to avoid conflict. Can increment 15.x.x.x
+  availability_zone       = "us-west-1a"
+  map_public_ip_on_launch = true
+  tags = {
+    Name = "public_subnet1"
+  }
 }
 
-variable "instance_type" {
-  # If needed, replace with alternate tiers. 
-  default = "t2.micro"
+resource "aws_subnet" "public_subnet2" {
+  vpc_id                  = aws_vpc.test_vpc.id
+  cidr_block              = "15.0.2.0/24" # EDIT : Update range to avoid conflict. Can increment 15.x.x.x
+  availability_zone       = "us-west-1b"
+  map_public_ip_on_launch = true
+  tags = {
+    Name = "public_subnet2"
+  }
 }
 
-# Use the default VPC. Can be altered to use other existing vpc.
-data "aws_vpc" "default" {
-  default = true
+# Create an Internet Gateway
+resource "aws_internet_gateway" "igw" {
+  vpc_id = aws_vpc.test_vpc.id
+  tags = {
+    Name = "test_igw" # EDIT : Replace test_igw with custom internet gateway name. 
+  }
 }
 
-# Get available subnets in the default VPC (assumes at least two for high availability)
-data "aws_subnet_ids" "default" {
-  vpc_id = data.aws_vpc.default.id
-}
+# Create a public route table and associate it with the subnets
+resource "aws_route_table" "public_rt" {
+  vpc_id = aws_vpc.test_vpc.id
 
-# Security Group for EC2 instances and the load balancer. Can change name (wordpress_sg) if needed.
-resource "aws_security_group" "wordpress_sg" {
-  name        = "wordpress-sg"
-  description = "Allow HTTP and SSH"
-  vpc_id      = data.aws_vpc.default.id
-
-  ingress {
-    description = "SSH"
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+  route {
+    cidr_block = "0.0.0.0/0"
+    gateway_id = aws_internet_gateway.igw.id
   }
 
+  tags = {
+    Name = "public_rt"
+  }
+}
+
+resource "aws_route_table_association" "subnet1_assoc" {
+  subnet_id      = aws_subnet.public_subnet1.id
+  route_table_id = aws_route_table.public_rt.id
+}
+
+resource "aws_route_table_association" "subnet2_assoc" {
+  subnet_id      = aws_subnet.public_subnet2.id
+  route_table_id = aws_route_table.public_rt.id
+}
+
+# Security Group for the ALB to allow HTTP/HTTPS inbound traffic
+resource "aws_security_group" "alb_sg" {
+  name        = "alb_sg"
+  description = "Allow HTTP and HTTPS inbound traffic"
+  vpc_id      = aws_vpc.test_vpc.id
+
   ingress {
-    description = "HTTP"
     from_port   = 80
     to_port     = 80
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
 
+  ingress {
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
   egress {
-    description = "All outbound"
     from_port   = 0
     to_port     = 0
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
-}
-
-# Provision two EC2 instances with a user_data script to install WordPress.
-resource "aws_instance" "wordpress" {
-  count         = 2
-  ami           = var.ami
-  instance_type = var.instance_type
-  # For distribution across subnets, use the count index to pick a subnet.
-  subnet_id     = element(data.aws_subnet_ids.default.ids, count.index)
-  vpc_security_group_ids = [aws_security_group.wordpress_sg.id]
-
-  # User data installs Apache, PHP, downloads & unpacks WordPress
-  #user_data = <<-EOF
-              #!/bin/bash
-              #apt-get update -y
-              #apt-get install -y apache2 php php-mysql wget unzip
-              #systemctl start apache2
-              # Download and unpack WordPress
-              #cd /tmp
-              #wget https://wordpress.org/latest.zip
-              #unzip latest.zip
-              #cp -r wordpress/* /var/www/html/
-              #chown -R www-data:www-data /var/www/html/
-              #EOF
-  user_data = file("install_wordpress.sh")
 
   tags = {
-    Name = "wordpress-instance-${count.index}"
+    Name = "alb_sg"
   }
 }
 
-# Create an Application Load Balancer (ALB) for the two instances.
-resource "aws_lb" "wordpress_load_balancer" {
-  name               = "wordpress-load-balancer"
-  internal           = false
+# Security Group for the EC2 instances: only allow traffic from the ALB
+resource "aws_security_group" "instance_sg" { # EDIT : Change instance_sg name each time.
+  name        = "instance_sg"
+  description = "Allow inbound traffic from the ALB"
+  vpc_id      = aws_vpc.test_vpc.id
+
+  ingress {
+    from_port       = 80
+    to_port         = 80
+    protocol        = "tcp"
+    security_groups = [aws_security_group.alb_sg.id]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name = "instance_sg"
+  }
+}
+
+# Create the Application Load Balancer (ALB)
+resource "aws_lb" "test_alb" { # EDIT : Change test_alb name each time.
+  name               = "test-alb"
   load_balancer_type = "application"
-  security_groups    = [aws_security_group.wordpress_sg.id]
-  subnets            = data.aws_subnet_ids.default.ids
-
+  subnets            = [aws_subnet.public_subnet1.id, aws_subnet.public_subnet2.id]
+  security_groups    = [aws_security_group.alb_sg.id]
   tags = {
-    Name = "wordpress-load-balancer"
+    Name = "test_alb"
   }
 }
 
-# Create a target group for HTTP on port 80. 
-resource "aws_lb_target_group" "wordpress_tg" {
-  name     = "wordpress-tg"
+# Create a Target Group for the ALB
+resource "aws_lb_target_group" "test_tg" { # Change test_tg with custom name for ALB.
+  name     = "test-tg"
   port     = 80
   protocol = "HTTP"
-  vpc_id   = data.aws_vpc.default.id
+  vpc_id   = aws_vpc.test_vpc.id
 
   health_check {
+    path                = "/"
+    protocol            = "HTTP"
+    matcher             = "200-399"
+    interval            = 30
+    timeout             = 5
     healthy_threshold   = 3
     unhealthy_threshold = 3
-    timeout             = 5
-    interval            = 30
-    path                = "/"
-    matcher             = "200-299"
+  }
+
+  tags = {
+    Name = "test_tg"
   }
 }
 
-# Create a listener for the ALB on port 80
-resource "aws_lb_listener" "wordpress_listener" {
-  load_balancer_arn = aws_lb.wordpress_alb.arn
+# Create a Listener for the ALB
+resource "aws_lb_listener" "alb_listener" {
+  load_balancer_arn = aws_lb.test_alb.arn
   port              = 80
   protocol          = "HTTP"
 
   default_action {
     type             = "forward"
-    target_group_arn = aws_lb_target_group.wordpress_tg.arn
+    target_group_arn = aws_lb_target_group.test_tg.arn
   }
 }
 
-# Register each EC2 instance with the target group. Notice target_id is referencing ID set in line 63.
-resource "aws_lb_target_group_attachment" "wordpress_attachment" {
-  count            = 2
-  target_group_arn = aws_lb_target_group.wordpress_tg.arn
-  target_id        = aws_instance.wordpress[count.index].id
+# Launch two EC2 instances with an existing key pair
+resource "aws_instance" "test_instance1" { # EDIT : Change test_instance1 with custom resource name each time.
+  ami                    = "ami-07d2649d67dbe8900"  # EDIT : Update with latest Ubuntu AMI in your region.
+  instance_type          = "t2.micro"
+  key_name               = "wordpress-test" # EDIT : Update with the existing EC2 key pair name.
+  subnet_id              = aws_subnet.public_subnet1.id
+  vpc_security_group_ids = [aws_security_group.instance_sg.id]
+
+  user_data = file("install_wordpress.sh")
+
+  tags = {
+    Name = "TestInstance1" # EDIT : Change TestInstance1 label with custom name each time.
+  }
+}
+
+resource "aws_instance" "test_instance2" { # EDIT : Change test_instance2 with custom resource name each time.
+  ami                    = "ami-07d2649d67dbe8900" # EDIT : Update with latest Ubuntu AMI in your region.
+  instance_type          = "t2.micro"
+  key_name               = "wordpress-test" # EDIT : Update with the existing EC2 key pair name.
+  subnet_id              = aws_subnet.public_subnet2.id
+  vpc_security_group_ids = [aws_security_group.instance_sg.id]
+
+  user_data = file("install_wordpress.sh")
+
+  tags = {
+    Name = "TestInstance2" # EDIT : Change TestInstance2 label with custom name each time.
+  }
+}
+
+# Register the instances with the ALB Target Group
+resource "aws_lb_target_group_attachment" "instance1_attachment" {
+  target_group_arn = aws_lb_target_group.test_tg.arn
+  target_id        = aws_instance.test_instance1.id
   port             = 80
 }
 
-# (Optional) Output the DNS name of the load balancer.
-output "alb_dns_name" {
-  description = "DNS name of the Application Load Balancer"
-  value       = aws_lb.wordpress_alb.dns_name
+resource "aws_lb_target_group_attachment" "instance2_attachment" {
+  target_group_arn = aws_lb_target_group.test_tg.arn
+  target_id        = aws_instance.test_instance2.id
+  port             = 80
 }
