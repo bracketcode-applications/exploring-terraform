@@ -30,14 +30,17 @@ To use Terraform with AWS you will need to utilize an assigned IAM Access Key wi
 
 1. Log into AWS, Navigate to IAM and generate an Access Key for your user.
 2. On your local computer open a terminal.
-3. Set the AWS_ACCESS_KEY_ID environment variable.
+3. Set the AWS_ACCESS_KEY_ID environment variable. Replace xxxx.
   ```
-  $ export AWS_ACCESS_KEY_ID=
+  $ export AWS_ACCESS_KEY_ID=xxxx
   ```
-4. Then set your secret key.
+4. Then set your secret key. Replace xxxx.
   ```
-  $ export AWS_SECRET_ACCESS_KEY=
+  $ export AWS_SECRET_ACCESS_KEY=xxxx
   ```
+
+If you encounter a conflcit with previously set AWS Access Key credentials try clearing the credentials files. On Mac this can be done by using Finder Go To Folder function to locate `~/.aws/`.
+
 
 #### Commands
 Run the following commands from your working directory (folder).
@@ -59,6 +62,10 @@ terraform validate
 Apply (aka launch) Configuration
 ```
 terraform apply
+```
+You can make use of the `-auto-approve` option to instruct Terraform to apply without asking for confirmation.
+```
+terraform apply -auto-approve
 ```
 
 Show Configuration
