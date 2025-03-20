@@ -1,9 +1,20 @@
+terraform {
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 4.16"
+    }
+  }
+
+  required_version = ">= 1.2.0"
+}
+
 provider "aws" {
   region = "us-west-1"
 }
 
-resource "aws_security_group" "wordpress_sg" {
-  name        = "wordpress_test_sg"
+resource "aws_security_group" "app_sg" {
+  name        = "app_test_sg"
   description = "Allow HTTP and SSH"
 
   ingress {
@@ -35,15 +46,13 @@ resource "aws_security_group" "wordpress_sg" {
   }
 }
 
-resource "aws_instance" "wordpress" {
-  ami             = "ami-07d2649d67dbe8900" # Update with latest Ubuntu AMI
-  instance_type   = "t2.micro"
-  key_name        = "wordpress-test"
-  security_groups = [aws_security_group.wordpress_sg.name]
-
-  user_data = file("install_wordpress.sh")
+resource "aws_instance" "app_server" {
+  ami           = "ami-830c94e3"
+  instance_type = "t2.micro"
+  key_name        = "app-test"
+  security_groups = [aws_security_group.app_sg.name]
 
   tags = {
-    Name = "WordPressInstance-Test"
+    Name = var.instance_name
   }
 }
